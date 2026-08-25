@@ -27,5 +27,5 @@ services:
         sync: false       # Set manually in Render dashboard
 
       - key: GROQ_MODEL
-        value: llama-3.1-8b-instant
+        value: groq/compound-mini
 
