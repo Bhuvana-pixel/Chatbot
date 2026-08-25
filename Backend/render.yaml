@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: nec-chatbot-backend
+    runtime: node
+    region: singapore   # Closest to India for low latency
+    plan: free          # Change to 'starter' for always-on
+
+    # --------------------------------------------------------
+    # Build
+    # --------------------------------------------------------
+    buildCommand: "npm install"
+
+    # --------------------------------------------------------
+    # Start
+    # --------------------------------------------------------
+    startCommand: "npm start"
+
+    # --------------------------------------------------------
+    # Environment Variables
+    # Set the actual values in the Render Dashboard.
+    # --------------------------------------------------------
+    envVars:
+      - key: PINECONE_API_KEY
+        sync: false       # Set manually in Render dashboard
+
+      - key: GROQ_API_KEY
+        sync: false       # Set manually in Render dashboard
+
+      - key: GROQ_MODEL
+        value: llama-3.1-8b-instant
+
