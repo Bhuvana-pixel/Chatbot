@@ -94,7 +94,7 @@ app.get('/health', (req, res) => {
     rag_pipeline: 'ready',
     retriever: 'Pinecone',
     generator: 'Groq',
-    model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+    model: process.env.GROQ_MODEL || 'openai/gpt-oss-20b',
     index: 'college-admission-chatbot',
     namespace: 'nec_v2'
   });

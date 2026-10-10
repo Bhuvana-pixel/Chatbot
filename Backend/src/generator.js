@@ -10,9 +10,9 @@ export class Generator {
       throw new Error('GROQ_API_KEY not found in environment variables.');
     }
     this.groq = new Groq({ apiKey });
-    let model = (process.env.GROQ_MODEL || 'llama-3.1-8b-instant').trim();
-    if (model.includes('/') || model.includes('compound') || !model) {
-      model = 'llama-3.1-8b-instant';
+    let model = (process.env.GROQ_MODEL || 'openai/gpt-oss-20b').trim();
+    if (model.includes('compound') || model === 'llama-3.1-8b-instant' || !model) {
+      model = 'openai/gpt-oss-20b';
     }
     this.modelName = model;
     this.maxContextLength = 6000;
@@ -97,50 +97,32 @@ Answer directly:`.trim();
     const systemPrompt = this._systemPrompt(domain, intent);
     const userPrompt = this._userPrompt(query, cleanCtx);
 
-    try {
-      const response = await this.groq.chat.completions.create({
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        model: this.modelName,
-        temperature: 0,
-        max_tokens: 1024
-      });
+    const fallbackModels = ['openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'openai/gpt-oss-120b'];
+    const candidateModels = [this.modelName, ...fallbackModels.filter(m => m !== this.modelName)];
 
-      const rawAnswer = response.choices[0]?.message?.content || '';
-      const cleanAns = this._cleanAnswer(rawAnswer);
+    for (const currentModel of candidateModels) {
+      try {
+        const response = await this.groq.chat.completions.create({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          model: currentModel,
+          temperature: 0,
+          max_tokens: 1024
+        });
 
-      if (!cleanAns) {
-        return "I couldn't generate a reliable answer from the retrieved knowledge.";
-      }
+        const rawAnswer = response.choices[0]?.message?.content || '';
+        const cleanAns = this._cleanAnswer(rawAnswer);
 
-      return cleanAns;
-    } catch (error) {
-      console.error(`Groq generation failed with model '${this.modelName}':`, error?.message || error);
-      
-      // Fallback to standard Groq model if a custom model failed
-      if (this.modelName !== 'llama-3.1-8b-instant') {
-        console.log('Attempting fallback model: llama-3.1-8b-instant...');
-        try {
-          const response = await this.groq.chat.completions.create({
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt }
-            ],
-            model: 'llama-3.1-8b-instant',
-            temperature: 0,
-            max_tokens: 1024
-          });
-          const rawAnswer = response.choices[0]?.message?.content || '';
-          const cleanAns = this._cleanAnswer(rawAnswer);
-          if (cleanAns) return cleanAns;
-        } catch (fallbackError) {
-          console.error('Fallback model also failed:', fallbackError?.message || fallbackError);
+        if (cleanAns) {
+          return cleanAns;
         }
+      } catch (error) {
+        console.error(`Groq generation failed with model '${currentModel}':`, error?.message || error);
       }
-
-      return 'I am unable to generate the answer right now. Please make sure the Groq API configuration is correct.';
     }
+
+    return 'I am unable to generate the answer right now. Please make sure the Groq API configuration is correct.';
   }
 }
