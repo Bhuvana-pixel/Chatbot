@@ -10,7 +10,11 @@ export class Generator {
       throw new Error('GROQ_API_KEY not found in environment variables.');
     }
     this.groq = new Groq({ apiKey });
-    this.modelName = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
+    let model = (process.env.GROQ_MODEL || 'llama-3.1-8b-instant').trim();
+    if (model.includes('/') || model.includes('compound') || !model) {
+      model = 'llama-3.1-8b-instant';
+    }
+    this.modelName = model;
     this.maxContextLength = 6000;
   }
 
