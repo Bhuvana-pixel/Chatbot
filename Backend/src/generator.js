@@ -113,7 +113,29 @@ Answer directly:`.trim();
 
       return cleanAns;
     } catch (error) {
-      console.error('Groq generation failed:', error);
+      console.error(`Groq generation failed with model '${this.modelName}':`, error?.message || error);
+      
+      // Fallback to standard Groq model if a custom model failed
+      if (this.modelName !== 'llama-3.1-8b-instant') {
+        console.log('Attempting fallback model: llama-3.1-8b-instant...');
+        try {
+          const response = await this.groq.chat.completions.create({
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            model: 'llama-3.1-8b-instant',
+            temperature: 0,
+            max_tokens: 1024
+          });
+          const rawAnswer = response.choices[0]?.message?.content || '';
+          const cleanAns = this._cleanAnswer(rawAnswer);
+          if (cleanAns) return cleanAns;
+        } catch (fallbackError) {
+          console.error('Fallback model also failed:', fallbackError?.message || fallbackError);
+        }
+      }
+
       return 'I am unable to generate the answer right now. Please make sure the Groq API configuration is correct.';
     }
   }
